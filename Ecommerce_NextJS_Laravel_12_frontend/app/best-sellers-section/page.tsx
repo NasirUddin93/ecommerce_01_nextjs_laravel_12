@@ -3,6 +3,7 @@ import { Award, TrendingUp, Star } from "lucide-react";
 import Link from "next/link";
 import { getImageUrl } from "../common/http";
 import { useCart } from "../contexts/CartContext";
+import { useState, useEffect } from "react";
 
 interface Product {
   id: number;
@@ -22,11 +23,46 @@ interface Product {
 }
 
 interface BestSellersProps {
-  products: Product[];
+  products?: Product[];
 }
 
-export default function BestSellers({ products }: BestSellersProps) {
+export default function BestSellers({ products: initialProducts = [] }: BestSellersProps) {
   const { addToCart } = useCart();
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch best sellers products
+    const fetchBestSellers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?bestsellers=true`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data.data || data);
+        } else {
+          setProducts(initialProducts);
+        }
+      } catch (error) {
+        console.error('Failed to fetch best sellers:', error);
+        setProducts(initialProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (initialProducts.length === 0) {
+      fetchBestSellers();
+    } else {
+      setLoading(false);
+    }
+  }, [initialProducts]);
 
   const handleAddToCart = (product: Product) => {
     const productWithNumberPrice = {
@@ -82,7 +118,16 @@ export default function BestSellers({ products }: BestSellersProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading best sellers...</p>
+            </div>
+          </div>
+        ) : products && products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <div
               key={product.id}
@@ -153,6 +198,12 @@ export default function BestSellers({ products }: BestSellersProps) {
             View All Best Sellers
           </Link>
         </div>
+            </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No best sellers available at the moment.</p>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -3,7 +3,7 @@ import { Clock, TrendingUp, Star } from "lucide-react";
 import Link from "next/link";
 import { getImageUrl } from "../common/http";
 import { useCart } from "../contexts/CartContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Product {
   id: number;
@@ -23,22 +23,59 @@ interface Product {
 }
 
 interface NewArrivalsProps {
-  products: Product[];
+  products?: Product[];
 }
 
-export default function NewArrivals({ products }: NewArrivalsProps) {
+export default function NewArrivals({ products: initialProducts = [] }: NewArrivalsProps) {
   const { addToCart } = useCart();
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('NewArrivals component - Products data:', products);
-    products.forEach(p => {
-      console.log(`Product: ${p.name}, Images:`, p.images);
-      if (p.images && p.images.length > 0) {
-        const imageUrl = p.images[0].image_url;
-        const resolvedUrl = getImageUrl(imageUrl);
-        console.log(`  Original: ${imageUrl} -> Resolved: ${resolvedUrl}`);
+    // Fetch new arrivals products
+    const fetchNewArrivals = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?new_arrivals=true`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data.data || data);
+        } else {
+          setProducts(initialProducts);
+        }
+      } catch (error) {
+        console.error('Failed to fetch new arrivals:', error);
+        setProducts(initialProducts);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    if (initialProducts.length === 0) {
+      fetchNewArrivals();
+    } else {
+      setLoading(false);
+    }
+  }, [initialProducts]);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      console.log('NewArrivals component - Products data:', products);
+      products.forEach(p => {
+        console.log(`Product: ${p.name}, Images:`, p.images);
+        if (p.images && p.images.length > 0) {
+          const imageUrl = p.images[0].image_url;
+          const resolvedUrl = getImageUrl(imageUrl);
+          console.log(`  Original: ${imageUrl} -> Resolved: ${resolvedUrl}`);
+        }
+      });
+    }
   }, [products]);
 
   const handleAddToCart = (product: Product) => {
@@ -95,7 +132,16 @@ export default function NewArrivals({ products }: NewArrivalsProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading new arrivals...</p>
+            </div>
+          </div>
+        ) : products && products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <div
               key={product.id}
@@ -166,6 +212,12 @@ export default function NewArrivals({ products }: NewArrivalsProps) {
             View All New Arrivals
           </Link>
         </div>
+            </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No new arrivals available at the moment.</p>
+          </div>
+        )}
       </div>
     </section>
   );
