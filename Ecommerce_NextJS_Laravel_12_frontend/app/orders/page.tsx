@@ -1,7 +1,7 @@
 // app/orders/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Layout from "../components/Layouts";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -38,7 +38,7 @@ interface Order {
   items: OrderItem[];
 }
 
-export default function OrdersPage() {
+function OrdersContent() {
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -299,5 +299,26 @@ export default function OrdersPage() {
       </div>
     </Layout>
     </ProtectedRoute>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <ProtectedRoute>
+          <Layout>
+            <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading your orders...</p>
+              </div>
+            </div>
+          </Layout>
+        </ProtectedRoute>
+      }
+    >
+      <OrdersContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Layout from "../components/Layouts";
@@ -8,7 +8,7 @@ import SocialLoginButtons from "../components/SocialLoginButtons";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -252,5 +252,26 @@ export default function LoginPage() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Layout>
+          <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md mx-auto">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading login page...</p>
+              </div>
+            </div>
+          </div>
+        </Layout>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
